@@ -110,7 +110,7 @@ class TranscriptionApp:
 
 
         self._analyzer = LLMConversationAnalyzer(
-            api_key=config.transcription.api_key
+            model="qwen3:1.7b"
         )
 
 
@@ -317,7 +317,7 @@ class TranscriptionApp:
     ) -> None:
 
 
-        if self._buffer.size() < 3:
+        if self._buffer.size() < 5:
 
             return
 
@@ -328,13 +328,17 @@ class TranscriptionApp:
         )
 
 
-
-        insight = (
-            self._analyzer.analyze(
-                transcript
+        try:
+            insight = (
+                self._analyzer.analyze(
+                    transcript
+                )
             )
-        )
-
+        except Exception as exc:
+            print(
+                f"[LLM ERROR] {exc}"
+            )
+            return
 
 
         #
@@ -454,7 +458,7 @@ class TranscriptionApp:
 
 
 
-                    if self._buffer.size() >= 3:
+                    if self._buffer.size() >= 5:
 
                         self._run_analysis()
 
@@ -557,14 +561,24 @@ class TranscriptionApp:
                 )
 
 
-
-                insight = (
-                    self._analyzer.analyze(
-                        transcript
+                try:
+                    insight = (
+                        self._analyzer.analyze(
+                            transcript
+                        )
                     )
-                )
+                except Exception as exc:
+                    print(
+                        f"[LLM ERROR] {exc}"
+                    )
+                    self._console.end_segment()
 
+                    print(
+                        "\nTranscripción detenida "
+                        "por el usuario."
+                    )
 
+                    return
 
                 self._update_intelligence(
                     insight

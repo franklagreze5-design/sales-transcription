@@ -1,15 +1,8 @@
-"""
-llm_analyzer.py
-
-Analizador comercial usando un LLM.
-Convierte transcripciones en inteligencia comercial estructurada.
-"""
-
 from __future__ import annotations
 
 import json
 
-from openai import OpenAI
+import ollama
 
 from sales_transcriber.intelligence.models import (
     ConversationInsight,
@@ -18,30 +11,18 @@ from sales_transcriber.intelligence.models import (
 
 class LLMConversationAnalyzer:
     """
-    Analizador comercial basado en IA.
+    Analizador comercial usando LLM local (Ollama).
 
-    Responsabilidades:
-    - Detectar intención comercial
-    - Detectar etapa del pipeline
-    - Detectar dolor/necesidad
-    - Detectar objeciones reales
-    - Evaluar oportunidad
-    - Generar coaching comercial
+    Reemplaza reglas manuales por comprensión
+    contextual de la conversación.
     """
-
 
     def __init__(
         self,
-        api_key: str,
-        model: str = "gpt-4.1-mini",
+        model: str = "qwen3:8b",
     ) -> None:
 
-
-        self.client = OpenAI(
-            api_key=api_key
-        )
-
-        self.model = model
+        self._model = model
 
 
 
@@ -52,20 +33,18 @@ class LLMConversationAnalyzer:
 
 
         prompt = f"""
-Eres un experto en ventas B2B consultivas.
+Eres un analista experto en ventas B2B.
 
-Analiza esta conversación comercial:
+Analiza la conversación comercial.
 
----
-{transcript}
----
+Tu respuesta debe ser EXCLUSIVAMENTE JSON válido.
+No agregues explicaciones.
+No uses markdown.
+No escribas texto antes o después del JSON.
 
-Devuelve SOLO JSON válido.
+IMPORTANTE:
 
-No inventes información.
-Si no existe evidencia, usa valores neutros.
-
-Clasifica:
+Usa solamente estos valores permitidos.
 
 intent:
 - discovery
@@ -80,6 +59,7 @@ sales_stage:
 - discovery
 - evaluation
 - presentation
+- pricing
 - objection
 - closing
 
@@ -90,59 +70,145 @@ sentiment:
 - negative
 
 
-Formato obligatorio:
+Reglas:
+
+- "Estamos buscando una solución"
+  significa discovery o evaluation.
+
+- "Evaluar alternativas", "evaluar opciones",
+  "comparar proveedores"
+  NO es una objeción.
+
+- Solo detecta objections si el cliente expresa:
+  precio alto, falta de presupuesto,
+  problema con proveedor actual,
+  rechazo o duda explícita.
+
+- buying_signal debe ser true cuando:
+  existe una necesidad clara,
+  están evaluando soluciones,
+  piden demo,
+  piden propuesta,
+  quieren avanzar.
+
+- No inventes presupuesto.
+- No inventes competencia.
+- No inventes próximos pasos.
+
+
+Devuelve exactamente esta estructura:
 
 {{
- "intent": "",
- "sales_stage": "",
- "sentiment": "",
- "objections": [],
- "primary_objection": null,
- "buying_signal": false,
- "next_step": null,
- "summary": "",
- "coach": ""
+  "intent": "",
+  "sales_stage": "",
+  "buying_signal": false,
+  "objections": [],
+  "summary": "",
+  "primary_objection": null,
+  "sentiment": "neutral",
+  "next_step": null
 }}
 
 
-Reglas importantes:
+Conversación:
 
-- "Estamos buscando una solución" indica necesidad, no compra.
-- "Estamos evaluando alternativas" indica evaluación, no competencia.
-- Una objeción solo existe si el cliente expresa una barrera.
-- No confundas problemas actuales con objeciones.
-- No marques buying_signal salvo intención clara.
+{transcript}
 """
 
 
-        response = (
-            self.client.chat.completions.create(
-                model=self.model,
-                temperature=0,
-                response_format={
-                    "type": "json_object"
-                },
-                messages=[
-                    {
-                        "role": "system",
-                        "content":
-                        "Eres un analista senior de ventas B2B."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
+        response = ollama.chat(
+            model=self._model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            think=False,
+            options={
+                "temperature":0,
+                "num_predict":120,
+            },
+        )
+
+        print("\n========== RESPONSE ==========")
+        print(type(response))
+        print(response)
+
+        print("==============================\n")
+
+        content = (
+            response["message"]["content"]
+            .strip())
+        #
+        # Limpieza por si devuelve markdown
+        #
+
+        if content.startswith(
+            "```json"
+        ):
+
+            content = (
+                content
+                .replace(
+                    "```json",
+                    ""
+                )
+                .replace(
+                    "```",
+                    ""
+                )
+                .strip()
             )
-        )
+
+
+        elif content.startswith(
+            "```"
+        ):
+
+            content = (
+                content
+                .replace(
+                    "```",
+                    ""
+                )
+                .strip()
+            )
 
 
 
-        data = json.loads(
-            response.choices[0]
-            .message
-            .content
-        )
+        try:
+
+            data = json.loads(
+                content
+            )
+
+
+        except json.JSONDecodeError:
+
+
+            #
+            # Fallback seguro
+            #
+
+            return ConversationInsight(
+
+                intent="unknown",
+
+                objections=[],
+
+                primary_objection=None,
+
+                sentiment="neutral",
+
+                summary=transcript[:350],
+
+                buying_signal=False,
+
+                next_step=None,
+
+                sales_stage="discovery",
+            )
 
 
 
@@ -150,39 +216,47 @@ Reglas importantes:
 
             intent=data.get(
                 "intent",
-                "unknown"
+                "unknown",
             ),
+
 
             objections=data.get(
                 "objections",
-                []
+                [],
             ),
+
 
             primary_objection=data.get(
                 "primary_objection"
             ),
 
+
             sentiment=data.get(
                 "sentiment",
-                "neutral"
+                "neutral",
             ),
+
 
             summary=data.get(
                 "summary",
-                transcript[:350]
+                transcript[:350],
             ),
+
 
             buying_signal=data.get(
                 "buying_signal",
-                False
+                False,
             ),
+
 
             next_step=data.get(
                 "next_step"
             ),
 
+
             sales_stage=data.get(
                 "sales_stage",
-                "discovery"
+                "discovery",
             ),
+
         )
