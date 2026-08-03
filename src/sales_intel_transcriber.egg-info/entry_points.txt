@@ -1,0 +1,3 @@
+[console_scripts]
+sales-audio-check = sales_transcriber.audio.diagnostics:main
+sales-transcriber = sales_transcriber.main:main

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: sales-intel-transcriber
+Version: 0.1.0
+Summary: MVP de transcripcion en tiempo real para reuniones comerciales.
+Requires-Python: >=3.11
+Requires-Dist: openai>=1.97.0
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: sounddevice>=0.4.7
+Requires-Dist: numpy>=2.0.0
+Requires-Dist: faster-whisper>=1.1.1
