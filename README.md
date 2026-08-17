@@ -52,6 +52,55 @@ sales-transcriber
 
 Habla por el micrófono. La aplicación imprimirá texto en la consola y se detendrá con `Ctrl+C`.
 
+## Interfaz web local
+
+```powershell
+sales-transcriber-ui
+```
+
+La interfaz queda disponible en `http://127.0.0.1:8765` y permite iniciar o detener la captura desde el navegador.
+
+Para preparar y correr el proyecto en otro PC con Windows:
+
+```powershell
+cd C:\Proyectos\sales-intel-transcriber
+.\run-ui.ps1
+```
+
+Tambien puedes iniciar la interfaz con doble click en `start-ui.cmd`.
+
+Para generar un ejecutable local:
+
+```powershell
+cd C:\Proyectos\sales-intel-transcriber
+.\build-exe.ps1
+```
+
+El archivo queda en `dist\SalesIntelTranscriber\SalesIntelTranscriber.exe`.
+
+## Requisito para coach IA
+
+El ejecutable incluye la transcripcion local con Whisper, pero el coach IA usa Ollama como servidor LLM local.
+
+En cada PC donde quieras usar el coach:
+
+1. Instala Ollama para Windows desde `https://ollama.com/download/windows`.
+2. Abre PowerShell y descarga el modelo:
+
+```powershell
+ollama run qwen3:1.7b
+```
+
+Ollama queda escuchando en `http://localhost:11434`. Si Ollama no esta instalado o no esta corriendo, la transcripcion puede funcionar, pero el panel de inteligencia comercial mostrara un error de conexion LLM.
+
+Para un PC cliente, usa el asistente incluido en la carpeta del ejecutable:
+
+```powershell
+.\install-ollama-and-model.ps1
+```
+
+Ese script abre la descarga oficial de Ollama si falta, verifica el servidor local y descarga `qwen3:1.7b`.
+
 ## Diagnosticar el microfono
 
 Lista los dispositivos de entrada:
@@ -106,13 +155,16 @@ Variables soportadas en `.env`:
 - `TRANSCRIBER_LANGUAGE`: idioma ISO-639-1. Por defecto `es`.
 - `TRANSCRIBER_DEBUG`: imprime diagnostico tecnico cuando vale `true`.
 - `WHISPER_MODEL`: modelo local de Faster Whisper. Por defecto `base`.
-- `WHISPER_NO_SPEECH_THRESHOLD`: sensibilidad interna de Whisper para silencio. Por defecto `0.6`.
-- `WHISPER_LOG_PROB_THRESHOLD`: filtro de confianza de Whisper. Por defecto `-1.0`.
+- `WHISPER_NO_SPEECH_THRESHOLD`: sensibilidad interna de Whisper para silencio. Por defecto `0.8`.
+- `WHISPER_LOG_PROB_THRESHOLD`: filtro de confianza de Whisper. Por defecto `-0.8`.
 - `AUDIO_SAMPLE_RATE`: frecuencia de muestreo. Por defecto `16000`.
 - `AUDIO_CHANNELS`: canales de audio. Por defecto `1`.
-- `AUDIO_CHUNK_SECONDS`: tamaño de cada fragmento de audio. Por defecto `4`.
+- `AUDIO_CHUNK_SECONDS`: tamano base de fragmento de audio. Por defecto `1.5`.
 - `AUDIO_DEVICE`: dispositivo de entrada opcional. Puede ser un índice numérico o nombre reconocido por `sounddevice`.
-- `AUDIO_MIN_RMS`: umbral de volumen para ignorar silencio. Por defecto `350`.
+- `AUDIO_MIN_RMS`: umbral de volumen para ignorar silencio. Por defecto `50`.
+- `MAX_SEGMENT_SECONDS`: duracion maxima de cada segmento enviado a Whisper. Por defecto `12`.
+- `OVERLAP_SECONDS`: audio repetido solo cuando un segmento se corta por duracion maxima. Por defecto `0.4`.
+- `MIN_SEGMENT_SECONDS`: duracion minima de un segmento para transcribir. Por defecto `1`.
 
 ## Si aparecen textos falsos como "y y y"
 

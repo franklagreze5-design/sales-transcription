@@ -67,7 +67,7 @@ class SpeakerDetector:
             if keyword in text:
 
                 return SpeakerSegment(
-                    speaker="CLIENT",
+                    speaker="Cliente",
                     text=transcript,
                 )
 
@@ -80,7 +80,7 @@ class SpeakerDetector:
             if keyword in text:
 
                 return SpeakerSegment(
-                    speaker="SELLER",
+                    speaker="Vendedor",
                     text=transcript,
                 )
 
@@ -91,7 +91,7 @@ class SpeakerDetector:
         if "?" in transcript:
 
             return SpeakerSegment(
-                speaker="SELLER",
+                speaker="Vendedor",
                 text=transcript,
             )
 
@@ -100,6 +100,6 @@ class SpeakerDetector:
         #
 
         return SpeakerSegment(
-            speaker="UNKNOWN",
+            speaker="Cliente probable",
             text=transcript,
         )

@@ -48,11 +48,6 @@ from sales_transcriber.intelligence.recommendation_engine import (
 )
 
 
-from sales_transcriber.intelligence.sales_coach import (
-    SalesCoach,
-)
-
-
 from sales_transcriber.intelligence.conversation_state import (
     ConversationState,
 )
@@ -60,11 +55,6 @@ from sales_transcriber.intelligence.conversation_state import (
 
 from sales_transcriber.intelligence.state_manager import (
     ConversationStateManager,
-)
-
-
-from sales_transcriber.intelligence.opportunity_scoring import (
-    OpportunityScoring,
 )
 
 
@@ -110,7 +100,10 @@ class TranscriptionApp:
 
 
         self._analyzer = LLMConversationAnalyzer(
-            model="qwen3:1.7b"
+            provider=config.llm.provider,
+            model=config.llm.model,
+            api_key=config.llm.api_key,
+            ollama_model=config.llm.ollama_model,
         )
 
 
@@ -119,12 +112,14 @@ class TranscriptionApp:
         )
 
 
-        self._sales_coach = SalesCoach()
-
-
 
         #
         # Conversation memory
+        #
+        # Se conserva para acumular contexto entre
+        # segmentos (pain points, objeciones, etc).
+        # El score y el riesgo por segmento ahora
+        # vienen directamente del LLM (insight).
         #
 
         self._conversation_state = ConversationState()
@@ -133,14 +128,6 @@ class TranscriptionApp:
         self._state_manager = (
             ConversationStateManager()
         )
-
-
-        self._opportunity_scoring = (
-            OpportunityScoring()
-        )
-
-
-        self._opportunity_score = 0
 
 
 
@@ -159,34 +146,16 @@ class TranscriptionApp:
         insight,
     ) -> None:
         """
-        Update conversation memory and opportunity score.
+        Update conversation memory using the latest insight.
+
+        El opportunity_score y risk_level ya no se calculan aquí:
+        vienen directamente del LLM en `insight`.
         """
 
-
-        #
-        # Update conversation state
-        #
 
         self._state_manager.update(
             self._conversation_state,
             insight,
-        )
-
-
-
-        #
-        # Calculate opportunity score
-        #
-        # Uses:
-        # - Current insight
-        # - Accumulated state
-        #
-
-        self._opportunity_score = (
-            self._opportunity_scoring.calculate(
-                insight,
-                self._conversation_state,
-            )
         )
 
 
@@ -252,14 +221,56 @@ class TranscriptionApp:
 
         print(
             f"Opportunity Score: "
-            f"{self._opportunity_score}/100"
+            f"{insight.opportunity_score}/100"
         )
 
 
         print(
             f"Risk Level: "
-            f"{self._conversation_state.risk_level}"
+            f"{insight.risk_level}"
         )
+
+
+        if insight.pain_points:
+
+            print(
+                f"Pain Points: {insight.pain_points}"
+            )
+
+
+        if insight.business_goals:
+
+            print(
+                f"Business Goals: {insight.business_goals}"
+            )
+
+
+        if insight.competitors:
+
+            print(
+                f"Competitors: {insight.competitors}"
+            )
+
+
+        if insight.budget_status:
+
+            print(
+                f"Budget Status: {insight.budget_status}"
+            )
+
+
+        if insight.timeline:
+
+            print(
+                f"Timeline: {insight.timeline}"
+            )
+
+
+        if insight.decision_maker:
+
+            print(
+                f"Decision Maker: {insight.decision_maker}"
+            )
 
 
         print(
@@ -353,17 +364,17 @@ class TranscriptionApp:
 
         recommendation = (
             self._recommendation_engine.generate(
-                insight
+                insight,
+                self._conversation_state,
             )
         )
 
 
 
         coach = (
-            self._sales_coach.coach(
-                insight,
-                transcript,
-            )
+            "\n".join(insight.coach_advice)
+            if insight.coach_advice
+            else None
         )
 
 
@@ -567,6 +578,20 @@ class TranscriptionApp:
                             transcript
                         )
                     )
+                except KeyboardInterrupt:
+                    print(
+                        "\n[INFO] Análisis final "
+                        "cancelado por el usuario."
+                    )
+
+                    self._console.end_segment()
+
+                    print(
+                        "\nTranscripción detenida "
+                        "por el usuario."
+                    )
+
+                    return
                 except Exception as exc:
                     print(
                         f"[LLM ERROR] {exc}"
@@ -588,17 +613,17 @@ class TranscriptionApp:
 
                 recommendation = (
                     self._recommendation_engine.generate(
-                        insight
+                        insight,
+                        self._conversation_state,
                     )
                 )
 
 
 
                 coach = (
-                    self._sales_coach.coach(
-                        insight,
-                        transcript,
-                    )
+                    "\n".join(insight.coach_advice)
+                    if insight.coach_advice
+                    else None
                 )
 
 

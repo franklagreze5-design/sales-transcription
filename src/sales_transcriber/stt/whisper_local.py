@@ -67,10 +67,10 @@ class WhisperTranscriber:
             segments, info = self._model.transcribe(
                 temp_path,
                 language=self._config.language,
-                beam_size=5,
-                best_of=5,
+                beam_size=1,
+                best_of=1,
                 vad_filter=True,
-                condition_on_previous_text=True,
+                condition_on_previous_text=False,
                 no_speech_threshold=self._config.whisper_no_speech_threshold,
                 log_prob_threshold=self._config.whisper_log_prob_threshold,
             )

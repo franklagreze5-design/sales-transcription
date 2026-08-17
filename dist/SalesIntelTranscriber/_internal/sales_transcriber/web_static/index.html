@@ -1,0 +1,267 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sales Coach AI</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="logo">SC</div>
+      <nav class="side-nav" aria-label="Navegacion principal">
+        <a class="active" href="#coachHero"><span></span>Coach</a>
+        <a href="#opportunityState"><span></span>Deal</a>
+        <a href="#customerTable"><span></span>CRM</a>
+        <a href="#transcript"><span></span>Registro</a>
+      </nav>
+    </aside>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <main class="app-shell">
+      <header class="app-header compact">
+        <section class="brand">
+          <p>AI Sales Coach</p>
+          <h1>Sales Coach AI</h1>
+          <span>Te dice que hacer durante la reunion para aumentar la probabilidad de cierre.</span>
+        </section>
+
+        <section class="meeting-controls">
+          <label>
+            Cliente existente
+            <select id="customerSelect">
+              <option value="">Nuevo cliente</option>
+            </select>
+          </label>
+          <label>
+            Cliente
+            <input id="customerInput" type="text" placeholder="Nombre del cliente" autocomplete="off">
+          </label>
+          <label>
+            Vendedor
+            <input id="sellerNameInput" type="text" placeholder="Nombre vendedor" autocomplete="off">
+          </label>
+          <label>
+            Rubro
+            <input id="industryInput" type="text" placeholder="Ej. logistica">
+          </label>
+          <label>
+            Tama&ntilde;o
+            <input id="companySizeInput" type="text" placeholder="Ej. 80 empleados">
+          </label>
+          <label>
+            Operaciones
+            <input id="operationsInput" type="text" placeholder="Ej. 12 personas">
+          </label>
+          <label>
+            Fecha
+            <input id="meetingDateInput" type="date">
+          </label>
+          <label>
+            Fuente audio
+            <select id="audioSourceSelect">
+              <option value="microphone">Microfono</option>
+              <option value="system">Sistema</option>
+              <option value="both">Microfono + sistema</option>
+            </select>
+          </label>
+          <div class="control-actions">
+            <button id="saveProfileBtn" class="info" type="button">Guardar cliente</button>
+            <span id="statusBadge" class="status idle">Detenido</span>
+            <button id="startBtn" type="button">Iniciar</button>
+            <button id="stopBtn" class="secondary" type="button">Detener</button>
+          </div>
+        </section>
+      </header>
+
+      <section id="coachHero" class="coach-hero">
+        <div class="coach-hero-main">
+          <span>Recomendacion activa del coach</span>
+          <strong id="liveAlert">Esperando senales comerciales.</strong>
+          <p id="coachReason">Cuando aparezca una objecion, intencion o senal de compra, la IA mostrara una accion concreta.</p>
+        </div>
+        <div class="coach-hero-score">
+          <span>Probabilidad de cierre</span>
+          <strong id="scoreBadge">0</strong>
+          <small id="buyReadinessValue">Sin lectura</small>
+        </div>
+      </section>
+
+      <section id="opportunityState" class="opportunity-grid">
+        <article class="snapshot-card primary">
+          <span>Momento de la oportunidad</span>
+          <strong id="momentumValue">Esperando</strong>
+          <small id="buyReadinessHint">Inicia la reunion para calcular intencion comercial.</small>
+        </article>
+        <article class="snapshot-card">
+          <span>Riesgo actual</span>
+          <strong id="riskValue">--</strong>
+          <small id="riskHint">Sin historial activo</small>
+        </article>
+        <article class="snapshot-card">
+          <span>Objeciones activas</span>
+          <strong id="activeObjectionsValue">--</strong>
+          <small id="decisionSignalValue">--</small>
+        </article>
+        <article class="snapshot-card">
+          <span>Confianza IA</span>
+          <strong id="aiConfidenceValue">--</strong>
+          <small id="commercialStatusValue">Esperando</small>
+        </article>
+        <article class="snapshot-card">
+          <span>Siguiente paso</span>
+          <strong id="nextStepValue">--</strong>
+          <small id="stageValue">--</small>
+        </article>
+        <article class="snapshot-card">
+          <span>Producto recomendado</span>
+          <strong id="starProductValue">Sales Coach AI</strong>
+          <small id="starProductHint">Recomendado segun dolores y contexto.</small>
+        </article>
+      </section>
+
+      <section class="main-sales-layout">
+        <article class="panel coach-panel">
+          <div class="panel-head">
+            <h2>Historial Del Coach</h2>
+            <span id="queueMetric">Cola 0</span>
+          </div>
+          <div id="coachFeed" class="coach-feed"></div>
+        </article>
+
+        <aside class="side-stack">
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Contexto Del Cliente</h2>
+              <span id="meetingIdBadge">Nueva</span>
+            </div>
+            <div class="context-grid">
+              <div><span>Cliente</span><strong id="contextCustomerValue">Nuevo cliente</strong></div>
+              <div><span>Vendedor</span><strong id="contextSellerValue">--</strong></div>
+              <div><span>Rubro</span><strong id="contextIndustryValue">--</strong></div>
+              <div><span>Tama&ntilde;o</span><strong id="contextSizeValue">--</strong></div>
+              <div><span>Operaciones</span><strong id="contextOpsValue">--</strong></div>
+              <div><span>Historial</span><strong id="historyCountValue">0 reuniones</strong></div>
+              <div><span>Presupuesto</span><strong id="budgetValue">--</strong></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Que Esta Pasando</h2>
+            </div>
+            <div class="meeting-summary">
+              <p id="meetingSummaryValue">Aun no hay resumen. Inicia la reunion para capturar senales comerciales.</p>
+            </div>
+            <div class="insight-grid compact-grid">
+              <div><span>Intencion</span><strong id="intentValue">--</strong></div>
+              <div><span>Timeline</span><strong id="timelineValue">--</strong></div>
+            </div>
+          </article>
+        </aside>
+
+        <article class="panel signals-panel">
+          <div class="panel-head">
+            <h2>Informacion Para Vender Mejor</h2>
+          </div>
+          <div class="signals">
+            <div>
+              <span>Dolores Del Cliente</span>
+              <ul id="painList"></ul>
+            </div>
+            <div>
+              <span>Objetivos De Negocio</span>
+              <ul id="goalsList"></ul>
+            </div>
+            <div>
+              <span>Resumen Ejecutivo</span>
+              <p id="summaryValue">Sin analisis todavia.</p>
+            </div>
+            <div>
+              <span>Plan De Accion</span>
+              <ul id="coachList"></ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel crm-panel">
+          <div class="panel-head">
+            <h2>CRM Append-Only</h2>
+            <div class="actions">
+              <button id="syncCrmBtn" class="info" type="button">Integrar al CRM</button>
+              <a id="exportMeetingJson" class="export secondary-link" href="/api/export-meeting-json">Exportar JSON</a>
+              <a class="export" href="/api/export-crm">Exportar CRM</a>
+              <a id="exportTranscripts" class="export secondary-link" href="/api/export-transcripts">Exportar registro</a>
+            </div>
+          </div>
+          <div class="crm-note">La integracion solo agrega nueva informacion o genera sugerencias para aprobacion. Nunca borra ni modifica datos existentes del CRM.</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Reuniones</th>
+                  <th>Rubro</th>
+                  <th>Score</th>
+                  <th>Etapa</th>
+                  <th>Riesgo</th>
+                  <th>Proximo Paso</th>
+                  <th>Resumen</th>
+                </tr>
+              </thead>
+              <tbody id="customerTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel history-panel">
+          <div class="panel-head">
+            <h2>Historial De Reuniones</h2>
+            <span id="historyCustomerTitle">Cliente actual</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Score</th>
+                  <th>Etapa</th>
+                  <th>Riesgo</th>
+                  <th>Proximo Paso</th>
+                  <th>Resumen</th>
+                </tr>
+              </thead>
+              <tbody id="meetingTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel transcript-panel compact">
+          <div class="panel-head">
+            <h2>Registro De Reunion</h2>
+            <span>Se guarda en historial</span>
+          </div>
+          <div id="transcript" class="transcript compact"></div>
+        </article>
+
+        <article class="panel technical-panel">
+          <div class="panel-head">
+            <h2>Estado Tecnico</h2>
+            <span>Soporte</span>
+          </div>
+          <div class="metric-grid">
+            <div><span>Modelo</span><strong id="modelMetric">base</strong></div>
+            <div><span>Latencia</span><strong id="latencyMetric">--</strong></div>
+            <div><span>RMS</span><strong id="rmsMetric">--</strong></div>
+            <div><span>Buffer</span><strong id="bufferMetric">0</strong></div>
+          </div>
+          <div class="config-list" id="configList"></div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

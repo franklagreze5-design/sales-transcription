@@ -1,0 +1,32 @@
+﻿Sales Coach AI - Instalacion en PC de prueba
+============================================
+
+1. Copia la carpeta completa SalesIntelTranscriber al PC de prueba.
+   No copies solo el .exe; la carpeta _internal es necesaria.
+
+2. Configura la key de OpenAI para el coach:
+   - Abre el archivo .env que esta junto al .exe.
+   - Completa:
+     OPENAI_API_KEY=tu_api_key
+     LLM_PROVIDER=openai
+     LLM_MODEL=gpt-4.1-mini
+     TRANSCRIBER_PROVIDER=whisper-local
+
+   Con esto, el audio se transcribe localmente con Whisper y solo el texto
+   de la reunion se envia a OpenAI para analisis comercial y coaching.
+
+3. Ejecuta:
+   SalesIntelTranscriber.exe
+
+4. Abre en el navegador:
+   http://127.0.0.1:8765
+
+5. Para reuniones online con audifonos:
+   Fuente audio = Microfono + sistema.
+
+Notas:
+- OpenAI es el modo recomendado para pruebas con PCs no potentes.
+- Si falta la API key o falla la conexion, el coach cae a reglas locales.
+- Ollama queda como alternativa opcional local, pero ya no es obligatorio.
+- La integracion CRM actual genera JSON append-only y nunca borra ni modifica
+  informacion existente del CRM.

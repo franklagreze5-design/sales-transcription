@@ -11,13 +11,18 @@ dependencies = [
     "openai>=1.97.0",
     "python-dotenv>=1.0.1",
     "sounddevice>=0.4.7",
+    "pyaudiowpatch>=0.2.12.8",
     "numpy>=2.0.0",
     "faster-whisper>=1.1.1",
 ]
 
 [project.scripts]
 sales-transcriber = "sales_transcriber.main:main"
+sales-transcriber-ui = "sales_transcriber.web_ui:main"
 sales-audio-check = "sales_transcriber.audio.diagnostics:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+sales_transcriber = ["web_static/*"]

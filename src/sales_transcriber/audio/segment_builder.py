@@ -19,8 +19,7 @@ class SpeechSegmentBuilder:
         silence_frames_to_stop: int = 45,
         sample_rate: int = 16000,
         max_segment_seconds: float = 15.0,
-        force_cut_seconds: float = 20.0,
-        overlap_seconds: float = 1.0,
+        overlap_seconds: float = 0.4,
         min_segment_seconds: float = 2.0,
     ) -> None:
 
@@ -39,11 +38,6 @@ class SpeechSegmentBuilder:
 
         self._max_segment_seconds = (
             max_segment_seconds
-        )
-
-
-        self._force_cut_seconds = (
-            force_cut_seconds
         )
 
 
@@ -78,9 +72,11 @@ class SpeechSegmentBuilder:
             )
 
 
-            if duration >= self._force_cut_seconds:
+            if duration >= self._max_segment_seconds:
 
-                return self._flush()
+                return self._flush(
+                    keep_overlap=True
+                )
 
 
             return None
@@ -105,7 +101,9 @@ class SpeechSegmentBuilder:
                 self._silence_limit
             ):
 
-                return self._flush()
+                return self._flush(
+                    keep_overlap=False
+                )
 
 
 
@@ -129,7 +127,10 @@ class SpeechSegmentBuilder:
 
 
 
-    def _flush(self) -> bytes | None:
+    def _flush(
+        self,
+        keep_overlap: bool,
+    ) -> bytes | None:
 
 
         duration = (
@@ -159,6 +160,10 @@ class SpeechSegmentBuilder:
         #
 
         if (
+            keep_overlap
+            and
+            self._overlap_frames > 0
+            and
             len(self._frames)
             >
             self._overlap_frames

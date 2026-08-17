@@ -18,6 +18,8 @@ class AudioConfig:
     channels: int = 1
     chunk_seconds: float = 1.5
     device: str | int | None = None
+    system_device: str | int | None = None
+    source: str = "microphone"
 
     # Audio filtering
     min_rms: float = 50.0
@@ -27,8 +29,8 @@ class AudioConfig:
     silence_frames_to_stop: int = 35
 
     # Segment control
-    max_segment_seconds: float = 10.0
-    overlap_seconds: float = 1.0
+    max_segment_seconds: float = 12.0
+    overlap_seconds: float = 0.4
     min_segment_seconds: float = 1.0
 
 
@@ -46,9 +48,19 @@ class TranscriptionConfig:
     debug: bool = False
 
     # Whisper local
-    whisper_model: str = "small"
+    whisper_model: str = "base"
     whisper_no_speech_threshold: float = 0.8
     whisper_log_prob_threshold: float = -0.8
+
+
+@dataclass(frozen=True)
+class LLMConfig:
+    """Commercial coach LLM settings."""
+
+    provider: str = "rules"
+    model: str = "gpt-4.1-mini"
+    api_key: str | None = None
+    ollama_model: str = "qwen3:1.7b"
 
 
 @dataclass(frozen=True)
@@ -57,6 +69,7 @@ class AppConfig:
 
     audio: AudioConfig
     transcription: TranscriptionConfig
+    llm: LLMConfig
 
 
 def _optional_device(
@@ -103,12 +116,9 @@ def load_config() -> AppConfig:
         "OPENAI_API_KEY"
     )
 
-    default_provider = (
-        "openai"
-        if api_key
-        and not api_key.startswith("sk-your-")
-        else "whisper-local"
-    )
+    has_openai_key = bool(api_key and not api_key.startswith("sk-your-"))
+    default_provider = "whisper-local"
+    default_llm_provider = "openai" if has_openai_key else "rules"
 
 
     return AppConfig(
@@ -142,6 +152,17 @@ def load_config() -> AppConfig:
                 )
             ),
 
+            system_device=_optional_device(
+                os.getenv(
+                    "AUDIO_SYSTEM_DEVICE"
+                )
+            ),
+
+            source=os.getenv(
+                "AUDIO_SOURCE",
+                "microphone",
+            ).strip().lower(),
+
             min_rms=float(
                 os.getenv(
                     "AUDIO_MIN_RMS",
@@ -168,14 +189,14 @@ def load_config() -> AppConfig:
             max_segment_seconds=float(
                 os.getenv(
                     "MAX_SEGMENT_SECONDS",
-                    "10",
+                    "12",
                 )
             ),
 
             overlap_seconds=float(
                 os.getenv(
                     "OVERLAP_SECONDS",
-                    "1",
+                    "0.4",
                 )
             ),
 
@@ -226,7 +247,7 @@ def load_config() -> AppConfig:
 
             whisper_model=os.getenv(
                 "WHISPER_MODEL",
-                "small",
+                "base",
             ),
 
 
@@ -244,5 +265,21 @@ def load_config() -> AppConfig:
                     "-0.8",
                 )
             ),
+        ),
+
+        llm=LLMConfig(
+            provider=os.getenv(
+                "LLM_PROVIDER",
+                default_llm_provider,
+            ).strip().lower(),
+            model=os.getenv(
+                "LLM_MODEL",
+                "gpt-4.1-mini",
+            ).strip(),
+            api_key=os.getenv("LLM_API_KEY") or api_key,
+            ollama_model=os.getenv(
+                "OLLAMA_MODEL",
+                "qwen3:1.7b",
+            ).strip(),
         ),
     )
